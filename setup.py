@@ -21,6 +21,6 @@ setup(
         'oauth2client==3.0.0',
         'requests_toolbelt==0.7.0',
         'python_jwt==2.0.1',
-        'pycryptodome==3.6.4'
+        'pycryptodome>=3.6.4'
     ]
 )
