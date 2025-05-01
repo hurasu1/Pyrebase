@@ -19,7 +19,7 @@ setup(
         'requests>=2.11.1',
         'gcloud==0.17.0',
         'oauth2client==3.0.0',
-        'requests_toolbelt==0.7.0',
+        'requests_toolbelt==0.10.0',
         'python_jwt==2.0.1',
         'pycryptodome>=3.6.4'
     ]
