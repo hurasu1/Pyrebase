@@ -16,7 +16,29 @@ import threading
 import socket
 from oauth2client.service_account import ServiceAccountCredentials
 from gcloud import storage
-from requests.packages.urllib3.contrib.appengine import is_appengine_sandbox
+
+# ---------------------------------------------------------------------------
+# Requests ≥ 2.32 では requests 内の vendored urllib3 が削除されたため、
+# 旧 import パスが存在しません。以下はバージョン差分を吸収する互換レイヤです。
+#
+#   1) requests < 2.32  …… requests.packages.* が残っているのでそのまま使用
+#   2) requests ≥ 2.32  …… urllib3 直下に移動しているのでそちらを import
+#   3) それも無い（例: Heroku/PyPI 以外の軽量ビルド）…… GAE 以外とみなし stub を返す
+# ---------------------------------------------------------------------------
+try:
+    # requests < 2.32.0 （vendored urllib3 がまだ存在）
+    from requests.packages.urllib3.contrib.appengine import is_appengine_sandbox
+except ModuleNotFoundError:  # requests ≥ 2.32.0
+    try:
+        from urllib3.contrib.appengine import is_appengine_sandbox  # type: ignore
+    except ModuleNotFoundError:
+
+        # App Engine 以外の環境では常に False を返すダミー実装
+        def is_appengine_sandbox() -> bool:  # noqa: D401
+            """Always returns False on non-GAE runtimes."""
+            return False
+
+# App Engine 用アダプタは従来どおり requests-toolbelt から取得
 from requests_toolbelt.adapters import appengine
 
 import python_jwt as jwt
