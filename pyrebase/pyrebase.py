@@ -17,35 +17,6 @@ import socket
 from oauth2client.service_account import ServiceAccountCredentials
 from gcloud import storage
 
-# 1) App Engine サンドボックス判定 ------------------------------------------
-try:
-    # requests < 2.32  … vendored urllib3
-    from requests.packages.urllib3.contrib.appengine import is_appengine_sandbox
-except ModuleNotFoundError:                # requests ≥ 2.32
-    try:
-        from urllib3.contrib.appengine import is_appengine_sandbox  # type: ignore
-    except ModuleNotFoundError:
-        # GAE 以外の環境では常に False を返すスタブ
-        def is_appengine_sandbox() -> bool:  # noqa: D401
-            """Always returns False on non-GAE runtimes."""
-            return False
-
-# 2) App Engine 用アダプタ ----------------------------------------------------
-try:
-    # requests-toolbelt ≥ 1.0 は内部で appengine モジュールを import するが、
-    # urllib3 から削除されたため ImportError になる。そこでフォールバックを用意。
-    from requests_toolbelt.adapters import appengine  # type: ignore
-except Exception:  # ImportError, AttributeError など何でも捕捉
-    class _GAEAdapterStub:  # noqa: D401
-        """Fallback adapter when urllib3.contrib.appengine is absent."""
-
-        @staticmethod
-        def monkeypatch() -> None:
-            # 本番環境 (Heroku 等) では特に何もしない
-            return None
-
-    appengine = _GAEAdapterStub()  # type: ignore
-
 import python_jwt as jwt
 from Crypto.PublicKey import RSA
 import datetime
@@ -75,13 +46,8 @@ class Firebase:
                 self.credentials = ServiceAccountCredentials.from_json_keyfile_name(config["serviceAccount"], scopes)
             if service_account_type is dict:
                 self.credentials = ServiceAccountCredentials.from_json_keyfile_dict(config["serviceAccount"], scopes)
-        if is_appengine_sandbox():
-            # Fix error in standard GAE environment
-            # is releated to https://github.com/kennethreitz/requests/issues/3187
-            # ProtocolError('Connection aborted.', error(13, 'Permission denied'))
-            adapter = appengine.AppEngineAdapter(max_retries=3)
-        else:
-            adapter = requests.adapters.HTTPAdapter(max_retries=3)
+
+        adapter = requests.adapters.HTTPAdapter(max_retries=3)
 
         for scheme in ('http://', 'https://'):
             self.requests.mount(scheme, adapter)
