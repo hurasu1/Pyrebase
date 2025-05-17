@@ -562,3 +562,4 @@ class Stream:
         self.sse.close()
         self.thread.join()
         return self
+        
